@@ -15,7 +15,9 @@ using namespace std;
 using namespace TMVA;
 int main( int argc, char** argv )
 {
+
   TString fGammaData("Data13TeV_SinglePhoton_2017.root"), fJetData("Data13TeV_JetHT_2017.root"), fJetQCD("Data13TeV_JetHTQCD_2017.root"), fGammaMC("MC13TeV_GJets.root"),binvar("Mjj");
+
   std::string categories;
   std::string oers;
 

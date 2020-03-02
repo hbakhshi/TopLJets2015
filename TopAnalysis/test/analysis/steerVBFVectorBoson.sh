@@ -40,7 +40,7 @@ fi
 echo "Selection adapted to YEAR=${ERA}"
 
 #to run locally use local as queue + can add "--njobs 8" to use 8 parallel jobs
-queue=workday
+queue=longlunch 
 outdir=${CMSSW_BASE}/src/TopLJets2015/TopAnalysis/test/analysis/VBFVectorBoson
 wwwdir=/eos/user/h/hbakhshi/www/SMP-19-005
 
@@ -58,15 +58,22 @@ case $WHAT in
 
     TESTSEL )
                
+
+
         json=data/era${ERA}/vbf_samples.json
-        tag=Data13TeV_2017C_SinglePhoton
+	
+        #tag=MC13TeV_2016_DY50toInf_1J_mlm
+        tag=MC13TeV_2017_DY50toInf_2J_fxfx
+
         if [[ ${ERA} == "2016" ]]; then
-            tag=MC13TeV_2016_EWKAJJ
+          # tag==MC13TeV_2016_DY50toInf_2J_fxfx
+           tag=MC13TeV_2016_DY50toInf_2J_fxfx
         fi
         input=${eosdir}/${tag}/Chunk_1_ext0.root        
         output=${tag}.root 
         #input=${eosdir}
         #output=testsel
+
 
 	python scripts/runLocalAnalysis.py \
             -i ${input} -o ${output} --tag ${tag} --only ${tag} \
@@ -83,8 +90,11 @@ case $WHAT in
         ### --CR     : gives a control region to evaluate fake rates in the photon data samples
         ### --SRfake : gives the distributions of fakes, normalised based on fake rates
 
-        json=data/era${ERA}/vbf_samples.json #,data/era${ERA}/vbf_syst_samples.json
-#	json=data/era${ERA}/vbf_syst_samples.json
+
+
+        json=data/era${ERA}/vbf_samples.json,data/era${ERA}/vbf_syst_samples.json
+	#json=data/era${ERA}/vbf_syst_samples.json
+
 
 	if [[ -z ${EXTRA} ]]; then
 	    echo "Making trees ... "
@@ -98,12 +108,15 @@ case $WHAT in
 	fi	
 	echo ${json} #--only SinglePhoton
 	python scripts/runLocalAnalysis.py \
-      	    -i ${eosdir} \
+	    -i ${eosdir} --only ${json} \
             -o ${outdir}/${githash}/${EXTRA}${QCD} \
             --farmappendix ${githash}${QCD} \
             -q ${queue} --genWeights genweights_${githash}.root \
-            --era era${ERA} -m VBFVectorBoson::RunVBFVectorBoson --ch 0 --runSysts ${extraOpts} ;
+            --era era${ERA} -m VBFVectorBoson::RunVBFVectorBoson --ch  0  --runSysts ${extraOpts}; #  --CR --skipexisting
+
+
 	;;
+
 
     CHECKSELINTEG )
         python scripts/checkLocalAnalysisInteg.py ../../../FARM${EXTRA}${githash}/ ${outdir}/${githash}/${EXTRA} 
@@ -134,6 +147,7 @@ case $WHAT in
             --farmappendix trig${githash} \
             -q ${queue} --genWeights genweights_${githash}.root \
             --era era${ERA} -m PhotonTrigEff::RunPhotonTrigEff --ch 0 --runSysts ${extraOpts};
+
 	;;
 
     CHECKTRIGEFFINTEG )
@@ -182,20 +196,32 @@ case $WHAT in
 
     PLOT )
 	
-        json=data/era${ERA}/vbf_samples.json;
-	syst_json=data/era${ERA}/vbf_syst_samples.json;
+
+#        json=data/era${ERA}/vbf_DY_FXFX_mlm.json;
+	 json=data/era${ERA}/vbf_samples.json;
+	 syst_json=data/era${ERA}/vbf_syst_samples.json;
         gjets_json=data/era${ERA}/gjets_samples.json;
 	fake_json=data/era${ERA}/vbf_fake_samples.json;
 	plotOutDir=${outdir}/${githash}/${EXTRA}/plots/
+
 	commonOpts="-i ${outdir}/${githash}/${EXTRA} --puNormSF puwgtctr -l ${fulllumi} --saveLog --mcUnc ${lumiUnc} --lumiSpecs LowVPtLowMJJA:${vbflumi},LowVPtHighMJJA:${vbflumi},LowVPtA:${vbflumi}"
-	#python scripts/plotter.py ${commonOpts} -j ${gjets_json} --silent --only A_gen
+
+#        python scripts/plotter.py ${commonOpts} -j ${gjets_json} --silent --only A_gen
         #python scripts/plotter.py ${commonOpts} -j ${gjets_json} --noStack --only A_
-        python scripts/plotter.py ${commonOpts} -j ${json} ${kFactors}
-        #python scripts/plotter.py ${commonOpts} -j ${json} --only VPt ${kFactors} --rawYields -o acceptance_plotter.root
-        #python scripts/plotter.py ${commonOpts} -j ${json} --only evcount ${kFactors} --saveTeX -o evcout_plotter.root
-        #python scripts/plotter.py ${commonOpts} -j ${syst_json} ${kFactors} --only VPt --silent -o syst_plotter.root
-	#python scripts/plotter.py ${commonOpts} -j ${json},${fake_json} --only LowVPt,HighVPt ${kFactors} ${fake} -o fake_plotter.root
+
+#	echo "python scripts/plotter.py ${commonOpts} -j ${json} ${kFactors}  --only newcat,HighVPtA,LowVPtA,HighVPtMM,LowVPtMM,HighVPtEE,LowVPtEE"
+	python scripts/plotter.py ${commonOpts} -j ${json}  ${kFactors}  --only HighVPt,LowVPt
+
+
+#	python scripts/plotter.py ${commonOpts} -j ${json} --only HighMJJ,LowMJJ ${kFactors} --rawYields -o acceptance_plotter.root
+#	python scripts/plotter.py ${commonOpts} -j ${json} --only evcount ${kFactors} --saveTeX -o evcout_plotter.root
+	python scripts/plotter.py ${commonOpts} -j ${syst_json} ${kFactors} --only HighVPtA,LowVPtA,HighVPtMM,LowVPtMM,HighVPtEE,LowVPtEE  --silent -o syst_plotter.root
+#	python scripts/plotter.py ${commonOpts} -j ${json},${fake_json} --only HighMJJ,LowMJJ ${kFactors} ${fake} -o fake_plotter.root
+
+
+
         ;;
+
     
     NLOTFACTORS )
         #transfer factors

@@ -61,7 +61,7 @@ TH1D*  rawFRMaker(TH1D& Num1, TH1D& Den1, TString fname = "Data13TeV_SinglePhoto
     Num->Add(tmpNum);
     Den->Add(tmpDen);
   }
-
+  
   Num1 = *((TH1D*)Num->ProjectionY("rawNum"));
   //temporary fix for tight definition vs relaxed tight
   //if(catName.Contains("LowVPt")) Num1.Scale(5042.000000/4536.000000);
@@ -69,6 +69,7 @@ TH1D*  rawFRMaker(TH1D& Num1, TH1D& Den1, TString fname = "Data13TeV_SinglePhoto
   TH1D * ratio = (TH1D*)Num1.Clone("rawFR");
   ratio->Divide(&Den1);
   return ratio;
+  
 }
 
 void makeFile(TString binvar){
