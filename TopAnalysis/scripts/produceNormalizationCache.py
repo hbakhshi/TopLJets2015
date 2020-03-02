@@ -36,10 +36,14 @@ def main():
         wgtCounter=None
         putrue=None
         labelH=None
+
         for f in os.listdir('/eos/cms/%s/%s' % (opt.inDir,sample ) ):
             
             try:
                 fIn=ROOT.TFile.Open('%s/%s/%s/%s' % (baseEOS,opt.inDir,sample,f ) )
+               # if not fIn:
+                 #   print "Wanring!!! Can't open chunk file:", f, " skipping this file!"
+                  #  continue
                 if not opt.HiForest:
                     if wgtCounter is None:
                         try:
@@ -52,6 +56,7 @@ def main():
                         except:
                             print 'Check %s/%s/%s/%s probably corrupted?' % (baseEOS,opt.inDir,sample,f )
                             continue
+
                     
                     labelH=fIn.Get('analysis/generator_initrwgt')
                     if labelH : labelH.SetDirectory(0)                             

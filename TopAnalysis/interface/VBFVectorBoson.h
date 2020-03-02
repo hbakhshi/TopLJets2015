@@ -29,6 +29,7 @@
 #include "TRandom3.h"
 #include "TMath.h"
 
+
 class VBFVectorBoson{
  public:
 
@@ -105,6 +106,7 @@ class VBFVectorBoson{
     else                       highVPtPhotonTrigs_.push_back("HLT_Photon175_v");
 
     lowMJJCut_  = 500.;
+    looseMJJCut_  = 200.;
     highMJJCut_ = 1000.;        
     lowVPtMinMJJCut_ = 300.;
 
@@ -174,8 +176,9 @@ private:
 
   //Variables to be added to the MVA Tree and additional variables
   vbf::DiscriminatorInputs vbfVars_;
-  //  float vbfmva_,flat_vbfmva_;
-  std::map<TString,float> vbfmva_, flat_vbfmva_;
+
+  float vbfmvaHVPt_, vbfmvaLVPt_ , vbfmva1_;
+  std::map<TString,float> vbfmva_, flat_vbfmva_  ;
   float evtWeight_;
   float sihih_,chiso_,r9_,hoe_,mindrl_,mindrj_;
   int training_;
@@ -185,13 +188,13 @@ private:
   float xsec_;
 
   //selection configuration
-  float leadJetPt_, subLeadJetPt_,leadeta,subleadeta,leadPt, subleadPt;
+  float leadJetPt_, subLeadJetPt_,leadEta,subleadEta,leadPt, subleadPt;
   int jetPuId_;
   bool cleanEENoise_;
   float zMassWindow_;
   float lowVPtCut_,  lowVPtDetaJJCut_, lowVPtMaxRapCut_, lowVPtMinMJJCut_;
   float highVPtCut_;
-  float lowMJJCut_, highMJJCut_;
+  float lowMJJCut_, highMJJCut_ , looseMJJCut_;
   std::vector<TString> lowVPtPhotonTrigs_, highVPtPhotonTrigs_;
   bool applyTrigSafePhoton_;
   

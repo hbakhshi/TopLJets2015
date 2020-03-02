@@ -64,7 +64,7 @@ int TMVAClassification( TString myMethodList , TString extention, BDTOptimizer* 
    TFile *inputS = TFile::Open(sigName ); // To be fixed
    TTree *signalTree     = (TTree*)inputS->Get("data"); // To be fixed
    
-
+   // std::cout << "Debug:=signal " << data << "  "  << std::endl;
    Double_t signalWeight     = 1.0;
    TString default_w_str = "evtWeight";
    
@@ -78,16 +78,18 @@ int TMVAClassification( TString myMethodList , TString extention, BDTOptimizer* 
      dlName = bdt_options->dsName;
    }
    dataloader = new DataLoaderWrapper(dlName);
-
+   
    std::vector<TString> cats = TMVA::gTools().SplitString( string(category), ':' );
    TString jet = " j_pt[0] > 50 && j_pt[1] > 50 ";
    TString lowMJJ = " mjj < 1000 ";
    TString highMJJ = " mjj > 1000 ";
+   // TString looseMJJ = " mjj > 200 ";
+   // std::cout << "Debug:=signal event rate " << netries << "  "  << std::endl;
    TString lowVpt = " gamma_pt[0] < 200 ";
 
    TString cut = "";
    bool isLowMJJ (false), isLowVpt(false), isHighMJJ(false), isHighVpt(false);
-   bool isHighPt(false), isVBF(false);
+   bool isHighPt(false), isVBF(false); // , isLooseVBF(false) , isLooseVPt(false);
    for (unsigned int iCat = 0; iCat < cats.size(); iCat++){
      if (cats[iCat] == "LowVPt")  {cout<<"It is LowVPt!"<<endl; isLowVpt = true;}
      if (cats[iCat] == "HighVPt") {cout<<"It is HighVPt!"<<endl; isHighVpt = true; }
@@ -95,6 +97,8 @@ int TMVAClassification( TString myMethodList , TString extention, BDTOptimizer* 
      if (cats[iCat] == "LowMJJ")  {cout<<"It is LowMJJ!"<<endl; isLowMJJ = true; }
      if (cats[iCat] == "HighPt")  {cout<<"It is HighPt!"<<endl; isHighPt = true; }
      if (cats[iCat] == "VBF")     {cout<<"It is VBF!"<<endl; isVBF = true; }
+     //  if (cats[iCat] == "LooseVPt"){cout<<"It is LooseVPt!"<<endl; isLooseVPt = true; }
+     //  if (cats[iCat] == "LooseVBF"){cout<<"It is LooseVBF!"<<endl; isLooseVBF = true; }
 
      cut+= "category." + cats[iCat] + " == 1 ";
      if(iCat < cats.size() - 1)
@@ -103,24 +107,47 @@ int TMVAClassification( TString myMethodList , TString extention, BDTOptimizer* 
    }
 
    bool isLowVptHighMJJ  = (isLowVpt && isHighMJJ);
+   //  bool isLowVptLowMJJ  = (isLowVpt && isLowMJJ);
    bool isHighVptHighMJJ = (isHighVpt && isHighMJJ);
    bool isHighVptLowMJJ  = (isHighVpt && isLowMJJ);
+  
+
    isHighVpt = (isHighVptHighMJJ || isHighVptLowMJJ);
    if (isVBF)    isLowVpt = true;
+   //  if (isLooseVBF)    isLowVpt = true;
    if (isHighPt) isHighVpt       = true;
    if (isHighVpt && extention.Contains("HighV") && extention.Contains("HighM")) isHighVptHighMJJ = true;
    if (isHighVpt && extention.Contains("HighV") && extention.Contains("LowM")) isHighVptLowMJJ = true;
    if (isLowVpt  && extention.Contains("HighM")) isLowVptHighMJJ = true;
+   // if (isLowVpt  && extention.Contains("LowM")) isLowVptLowMJJ = true;
+   
    
    if (isVBF){
-     cut = cut + " && " + jet + " && " + lowVpt + " && mjj > 500 ";
+     cut = cut + " && " + jet + " && " + lowVpt + " && mjj > 200 ";
      if(isLowVptHighMJJ) cut = cut + " && " + highMJJ;
    }
    if (isHighPt){
-     cut = cut + " && mjj > 500 && " + jet;
+     cut = cut + " && mjj > 200 && " + jet;
      if (isHighVptHighMJJ) cut = cut + " && " + highMJJ;
      if (isHighVptLowMJJ)  cut = cut + " && " + lowMJJ;
    }
+   //Loose region
+   /*    if (isLooseVBF){
+	cut = cut + " && mjj > 200 && " + jet;
+     if (isHighVptHighMJJ) cut = cut + " && " + highMJJ;
+     if (isHighVptLowMJJ)  cut = cut + " && " + lowMJJ;
+     if (isLowVptHighMJJ) cut = cut + " && " + highMJJ;
+     if (isLowVptLowMJJ)  cut = cut + " && " + lowMJJ;
+     }*/
+
+      /*   if (isLooseVPt){
+     cut = cut + " && mjj > 200 && " + " && mjj<500 &&" + jet;
+     if (isHighVptHighMJJ) cut = cut + " && " + highMJJ;
+     if (isHighVptLowMJJ)  cut = cut + " && " + lowMJJ;
+     if (isLowVptHighMJJ) cut = cut + " && " + highMJJ;
+     if (isLowVptLowMJJ)  cut = cut + " && " + lowMJJ;
+     }*/
+  
 
    TString cutB = cut;
    int idx = cutB.Index("category.A");
@@ -130,7 +157,18 @@ int TMVAClassification( TString myMethodList , TString extention, BDTOptimizer* 
    TCut mycutb = TCut(cut) || dyCut;
    cout << "Cut is : " <<cut<<endl;
    dataloader->readInputs(card);
+   /*
+   if (Use["VBF"]) {
+     if (isLowVptHighMJJ)
+       dataloader->setVariables();
+     else if (isHighVpt && !isHighVptHighMJJ  && !isHighVptLowMJJ)
+       dataloader->setAllVariables(); 
+     else if(isHighVptHighMJJ)
+       dataloader->setVariables();
+       else if(isHighVptLowMJJ)*/
+
    if (Use["VBF"]) {     
+
      dataloader->setVariables();
    }
    else if (Use["Cuts"] || Use["CutsD"]) dataloader->setCutOptVars();
@@ -144,9 +182,10 @@ int TMVAClassification( TString myMethodList , TString extention, BDTOptimizer* 
 
  
    dataloader->PrepareTrainingAndTestTree( mycuts, mycutb,
-					   //					     "nTrain_Signal=1000:nTrain_Background=5000:SplitMode=Random:NormMode=NumEvents:!V");// To use the info in the Tree
-					   //  "nTrain_Signal=1000:"+nTrainBkg+":SplitMode=Random:NormMode=NumEvents:!V");// To use the info in the Tree
+					   // "nTrain_Signal=1000:nTrain_Background=5000:SplitMode=Random:NormMode=NumEvents:!V");// To use the info in the Tree
+					   // "nTrain_Signal=1000:"+nTrainBkg+":SplitMode=Random:NormMode=NumEvents:!V");// To use the info in the Tree
 					   "nTrain_Signal=0:nTest_Signal=0:nTrain_Background=0:nTest_Background=0:SplitMode=Alternate:NormMode=None:!V");// To use the info in the Tree
+					   // "SplitMode=Alternate:NormMode=None:!V");// To use the info in the Tree
 
      
    if( Use["VBF"] ){

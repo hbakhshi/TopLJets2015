@@ -31,7 +31,7 @@ def main():
     parser.add_option(      '--binWid',      dest='binWid',      help='divide by bin width',            default=False,             action='store_true')
     parser.add_option(      '--saveLog',     dest='saveLog' ,    help='save log versions of the plots', default=False,             action='store_true')
     parser.add_option(      '--silent',      dest='silent' ,     help='only dump to ROOT file',         default=False,             action='store_true')
-    parser.add_option(      '--ratioRange',  dest='ratioRange' , help='ratio range',                    default="0.46,1.54",         type='string')
+    parser.add_option(      '--ratioRange',  dest='ratioRange' , help='ratio range',                    default="0.7,1.3",         type='string')
     parser.add_option(      '--onlyData',    dest='onlyData' ,   help='only plots containing data',     default=False,             action='store_true')
     parser.add_option(      '--saveTeX',     dest='saveTeX' ,    help='save as tex file as well',       default=False,             action='store_true')
     parser.add_option(      '--rebin',       dest='rebin',       help='rebin factor',                   default=1,                 type=int)
@@ -199,7 +199,9 @@ def main():
                             histos[-1].SetTitle(sp[1])
 
                         for hist in histos:
+
                             if "vbfmva" in hist.GetName() and isData and opt.blined:
+
                                 tmpBin = hist.GetXaxis().FindBin(0.2)
                                 for iBin in range(tmpBin,hist.GetXaxis().GetNbins()):
                                     hist.SetBinContent(iBin, 0.0000001)
@@ -222,7 +224,9 @@ def main():
                                     lumi=lumiSpecs[lSpec]
                                     break
                                 if not opt.rawYields and not tag in rawList:
-                                    hist.Scale(xsec*lumi*puNormSF*sfVal)       
+                                    hist.Scale(xsec*lumi*puNormSF*sfVal)
+                                    print (xsec*lumi)
+                                    print xsec
              
                             #rebin if needed
                             if opt.rebin>1:  hist.Rebin(opt.rebin)
