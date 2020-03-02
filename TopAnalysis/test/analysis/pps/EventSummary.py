@@ -10,7 +10,7 @@ class EventSummary:
 
         """ define all variables needed to store and instantiate them as arrays of different types """
 
-        self.vars={'i':['cat','isOffZ','xangle','run','lumi','era','nch','nvtx','mixType','PFMultSumHF'],
+        self.vars={'i':['cat','isOffZ','xangle','run','lumi','era','sighyp','nch','nvtx','mixType','PFMultSumHF'],
                    'l':['event'],
                    'f':['wgt',
                         'l1pt','l1eta','l2pt','l2eta',

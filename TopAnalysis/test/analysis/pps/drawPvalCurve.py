@@ -118,9 +118,13 @@ def main():
 
         obslimfiles=[os.path.join(resultsDir,f) for f in os.listdir(resultsDir) if '.obs.AsymptoticLimits' in f and key in f]
         obs_limits=fillLimitsFrom(obslimfiles,True)
-        explimfiles=[os.path.join(resultsDir,f) for f in os.listdir(resultsDir) if 'AsymptoticLimits' in f and key in f and not '.obs.' in f]
-        exp_limits=fillLimitsFrom(explimfiles,False)
+        #explimfiles=[os.path.join(resultsDir,f) for f in os.listdir(resultsDir) if 'AsymptoticLimits' in f and key in f and not '.obs.' in f]
+        #exp_limits=fillLimitsFrom(explimfiles,False)
+        exp_limits=fillLimitsFrom(obslimfiles,False)
         lumi=2.64 if '#gamma' in title else 37.5
+        for i in range(len(exp_limits)):
+            print exp_limits[i][0],exp_limits[i][1][0],obs_limits[i][0],obs_limits[i][1][0]
+
         showLimits(exp_limits,'limits_%s_%d'%(key,mass),title,lumi,obs_limits)
 
     showPvalSummary(grpval)

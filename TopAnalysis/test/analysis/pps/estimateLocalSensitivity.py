@@ -21,7 +21,7 @@ def estimateLocalSensitivity(opt):
 
     cuts='xangle==%d && mixType==1 && cat==169 && l1pt>30 && l2pt>20 && bosonpt>40 && nvtx<20 && PFPzSumHF<12000'%opt.xangle
     finalCut=cuts+' && csi1>0.04 && csi2>0.04'
-    data.Draw('mmiss >> (50,0,2500)',finalCut,'goff')
+    data.Draw('mmiss >> (50,0,2500)','wgt*ppsEff*%s'%finalCut,'goff')
     h=data.GetHistogram()    
     h.SetDirectory(0)
 
@@ -41,7 +41,7 @@ def estimateLocalSensitivity(opt):
     print 'Scanning csi in',CSILIST
     for csi in CSILIST:
         finalCut='%s && csi1>%f && csi2>%f'%(cuts,csi,csi)
-        data.Draw('mmiss >> (50,0,2500)',finalCut,'goff')
+        data.Draw('mmiss >> (50,0,2500)','wgt*ppsEff*%s'%finalCut,'goff')
         hvar=data.GetHistogram()
         for xbin in range(h.GetNbinsX()):
             nomCts=h.GetBinContent(xbin+1)
@@ -54,7 +54,7 @@ def estimateLocalSensitivity(opt):
     cuts='xangle==%d && mixType==1 && cat==169 && l1pt>30 && l2pt>20 && csi1>0.04 && csi2>0.04 && nvtx<20 && PFPzSumHF<12000'%opt.xangle
     for pt in PTLIST:
         finalCut='%s && bosonpt>%f'%(cuts,pt)
-        data.Draw('mmiss >> (50,0,2500)',finalCut,'goff')
+        data.Draw('mmiss >> (50,0,2500)','wgt*ppsEff*%s'%finalCut,'goff')
         hvar=data.GetHistogram()
         for xbin in range(h.GetNbinsX()):
             nomCts=h.GetBinContent(xbin+1)
@@ -67,7 +67,7 @@ def estimateLocalSensitivity(opt):
     cuts='xangle==%d && mixType==1 && cat==169 && l1pt>30 && l2pt>20 && csi1>0.04 && csi2>0.04 && bosonpt>40 && PFPzSumHF<12000'%opt.xangle
     for n in NVTXLIST:
         finalCut='%s && nvtx<%f'%(cuts,n)
-        data.Draw('mmiss >> (50,0,2500)',finalCut,'goff')
+        data.Draw('mmiss >> (50,0,2500)','wgt*ppsEff*%s'%finalCut,'goff')
         hvar=data.GetHistogram()
         for xbin in range(h.GetNbinsX()):
             nomCts=h.GetBinContent(xbin+1)
@@ -80,7 +80,7 @@ def estimateLocalSensitivity(opt):
     cuts='xangle==%d && mixType==1 && cat==169 && l1pt>30 && l2pt>20 && csi1>0.04 && csi2>0.04 && bosonpt>40 && nvtx<20'%opt.xangle
     for hf in PFSUMPZLIST:
         finalCut='%s && PFPzSumHF<%f'%(cuts,hf)
-        data.Draw('mmiss >> (50,0,2500)',finalCut,'goff')
+        data.Draw('mmiss >> (50,0,2500)','wgt*ppsEff*%s'%finalCut,'goff')
         hvar=data.GetHistogram()
         for xbin in range(h.GetNbinsX()):
             nomCts=h.GetBinContent(xbin+1)

@@ -23,8 +23,11 @@ outurl=sys.argv[2]
 runMode=int(sys.argv[3])
 step=int(sys.argv[4])
 mix_file=''
+allowPix="1,2"
 if len(sys.argv)>5:
     mix_file=sys.argv[5]
+if len(sys.argv)>6:
+    allowPix=sys.argv[6]
 stepDir='analysis' if step==1 else 'mixing'
 
 toCheck=[]
@@ -68,13 +71,14 @@ print '-'*50
 outurl=outurl.replace('/Chunks','')
 if runMode==1:
     print 'Running locally',len(toCheck),'/',nTot,'jobs'
-    os.system('sh test/analysis/pps/wrapAnalysis.sh {cmssw} {step} {outurl} {inurl} {tag} {mix_file}'.format(cmssw=os.environ['CMSSW_BASE'],
-                                                                                                             step=step,
-                                                                                                             outurl=outurl,
-                                                                                                             inurl=inurl,
-                                                                                                             tag=','.join(toCheck),
-                                                                                                             stepDir=stepDir,
-                                                                                                             mix_file=mix_file))
+    os.system('sh test/analysis/pps/wrapAnalysis.sh {cmssw} {step} {outurl} {inurl} {tag} {mix_file} {allowPix}'.format(cmssw=os.environ['CMSSW_BASE'],
+                                                                                                                        step=step,
+                                                                                                                        outurl=outurl,
+                                                                                                                        inurl=inurl,
+                                                                                                                        tag=','.join(toCheck),
+                                                                                                                        stepDir=stepDir,
+                                                                                                                        mix_file=mix_file,
+                                                                                                                        allowPix=allowPix))
 
 elif runMode==2:
     print 'Submitting',len(toCheck),'/',nTot,'jobs'
@@ -87,11 +91,12 @@ elif runMode==2:
         cache.write("+JobFlavour = \"tomorrow\"\n")
         cache.write("request_cpus = 4\n")
         for x in toCheck:
-            cache.write("arguments   = {cmssw} {step} {predout} {predin} {filein} {mix_file}\n".format(cmssw=os.environ['CMSSW_BASE'],
-                                                                                                       step=step,
-                                                                                                       predout=outurl,
-                                                                                                       predin=inurl,
-                                                                                                       filein=x,
-                                                                                                       mix_file=mix_file))
+            cache.write("arguments   = {cmssw} {step} {predout} {predin} {filein} {mix_file} {allowPix}\n".format(cmssw=os.environ['CMSSW_BASE'],
+                                                                                                                  step=step,
+                                                                                                                  predout=outurl,
+                                                                                                                  predin=inurl,
+                                                                                                                  filein=x,
+                                                                                                                  mix_file=mix_file,
+                                                                                                                  allowPix=allowPix))
             cache.write("queue 1\n")
-        os.system('condor_submit zxana_recover.sub')
+    os.system('condor_submit zxana_recover.sub')

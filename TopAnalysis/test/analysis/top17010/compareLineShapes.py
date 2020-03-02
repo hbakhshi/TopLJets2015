@@ -9,13 +9,18 @@ def getScenario(mt,gt):
 
 
 simScenarios={    
-    (169.5,1.23) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1695.root',
-    (171.5,1.28) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1715.root',
-    (172.5,1.31) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets.root',
-    (173.5,1.34) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1735.root',
-    (175.5,1.39) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1755.root',
+#    (169.5,1.23) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1695.root',
+#    (171.5,1.28) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1715.root',
+#    (172.5,1.31) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets.root',
+#    (173.5,1.34) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1735.root',
+#    (175.5,1.39) : '/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/MC13TeV_2016_TTJets_m1755.root',
+
+    (172.5,0.90) : '/eos/cms/store/cmst3/group/top/TOP17010/final_method1a/0c522df/MC13TeV_2016_tt2l_0p90.root',
+    (172.5,1.10) : '/eos/cms/store/cmst3/group/top/TOP17010/final_method1a/0c522df/MC13TeV_2016_tt2l_1p10.root',
+    (172.5,1.31) : '/eos/cms/store/cmst3/group/top/TOP17010/final_method1a/0c522df/MC13TeV_2016_tt2l_1p31.root',
+    (172.5,1.90) : '/eos/cms/store/cmst3/group/top/TOP17010/final_method1a/0c522df/MC13TeV_2016_tt2l_1p90.root',
     }
-rwScenarios=[ (169.5,1.23), (171.5,1.28), (172.5,1.0), (172.5,2.0), (173.5,1.34), (175.5,1.39) ]
+rwScenarios=[ (172.5,0.90), (172.5,1.10), (172.5,1.31), (172.5,1.90)] 
 
 
 
@@ -49,7 +54,7 @@ for key in simScenarios:
 rwScenariosH={}
 rwScenariosMassH={}
 for key in rwScenarios:
-    url='/eos/cms/store/cmst3/group/top/TOP17010/final/0c522df/scenario%d/MC13TeV_2016_TTJets.root'%getScenario(key[0],key[1])
+    url='/eos/cms/store/cmst3/group/top/TOP17010/final_method1a/0c522df/scenario%d/MC13TeV_2016_TTJets_psweights.root'%getScenario(key[0],key[1])
     print url
     rwScenariosH[key]=getDist(url)
     rwScenariosH[key].SetName('rw%d'%len(rwScenariosH))
@@ -76,9 +81,9 @@ p.savelog=True
 p.doPoissonErrorBars=False
 p.range=(1e-4,0.014)
 p.ytit='PDF'
-p.add(h=simScenariosH[(172.5,1.31)].Clone(),title=simScenariosH[(172.5,1.31)].GetTitle(),color=1,isData=True,spImpose=False,isSyst=False,doDivideByBinWidth=True)
-p.add(h=rwScenariosH[(172.5,1.0)].Clone(), title=rwScenariosH[(172.5,1.0)].GetTitle(),color=2,isData=False,spImpose=False,isSyst=False,doDivideByBinWidth=True)
-p.add(h=rwScenariosH[(172.5,2.0)].Clone(), title=rwScenariosH[(172.5,2.0)].GetTitle(),color=3,isData=False,spImpose=False,isSyst=False,doDivideByBinWidth=True)
+p.add(h=simScenariosH[(172.5,0.90)].Clone(),title=simScenariosH[(172.5,0.90)].GetTitle(),color=1,isData=True,spImpose=False,isSyst=False,doDivideByBinWidth=True)
+p.add(h=rwScenariosH[(172.5,0.90)].Clone(), title=rwScenariosH[(172.5,0.90)].GetTitle(),color=2,isData=False,spImpose=False,isSyst=False,doDivideByBinWidth=True)
+#p.add(h=rwScenariosH[(172.5,2.0)].Clone(), title=rwScenariosH[(172.5,2.0)].GetTitle(),color=3,isData=False,spImpose=False,isSyst=False,doDivideByBinWidth=True)
 p.show('./',lumi=35900,noStack=True)
 
 

@@ -50,9 +50,11 @@ def main():
                             wgtCounter=fIn.Get('analysis/fidcounter').ProjectionX('genwgts',1,1)
                             wgtCounter.SetDirectory(0)
                             wgtCounter.Reset('ICE')
+                            
                             putrue=fIn.Get('analysis/putrue').Clone()
                             putrue.SetDirectory(0)
-                            putrue.Reset('ICE')
+                            putrue.Reset('ICE')                            
+
                         except:
                             print 'Check %s/%s/%s/%s probably corrupted?' % (baseEOS,opt.inDir,sample,f )
                             continue
@@ -105,6 +107,11 @@ def main():
         #normalize pudistribution
         totalEvts=putrue.Integral(0,putrue.GetNbinsX()+1)
         if totalEvts>0: putrue.Scale(1./totalEvts)
+
+        if wgtCounter.GetBinContent(1)==0 and totalEvts>0:
+            print '[Warning] fidcounter seems to have the countings at 0'
+            print 'Trying to recover from putrue integral=',totalEvts
+            wgtCounter.SetBinContent(1,1./totalEvts)
        
         genweights[sample]=wgtCounter
         puprofile[sample]=putrue

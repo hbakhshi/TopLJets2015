@@ -4,18 +4,35 @@ import sys
 import argparse
 import itertools
 
-KINEMATICS = [('bosonpt>30',                       'bosonpt>95'),
-              ('bosonpt>40',                       'bosonpt>100'),
-              ('bosonpt>40 && l1pt>40 && l2pt>30', 'bosonpt>110'),             
-              ('bosonpt>50',                       'bosonpt>120'),
-              ('bosonpt>50 && l1pt>40 && l2pt>30', 'bosonpt>130'),             
-              ('bosonpt>60',                       'bosonpt>140')]
-RPSEL      = ['csi1>0.035 && csi2>0.035',
-              'csi1>0.045 && csi2>0.045',              
-              'csi1>0.045 && csi2>0.055']
-CATEGS     = ['nvtx<20,nvtx>=20',
-              'nvtx<25,nvtx>=25',
-              'nvtx<30,nvtx>=30']
+#PRE-APP VERSION
+#KINEMATICS = [('bosonpt>30',                       'bosonpt>95'),
+#              ('bosonpt>40',                       'bosonpt>100'),
+#              ('bosonpt>40 && l1pt>40 && l2pt>30', 'bosonpt>110'),             
+#              ('bosonpt>50',                       'bosonpt>120'),
+#              ('bosonpt>50 && l1pt>40 && l2pt>30', 'bosonpt>130'),             
+#              ('bosonpt>60',                       'bosonpt>140')]
+#RPSEL      = ['csi1>0.035 && csi2>0.035',
+#              'csi1>0.045 && csi2>0.045',              
+#              'csi1>0.045 && csi2>0.055']
+#CATEGS     = ['nvtx<20,nvtx>=20',
+#              'nvtx<25,nvtx>=25',
+#              'nvtx<30,nvtx>=30']
+
+
+#NEW VERSION
+KINEMATICS = [('bosonpt>30', 'bosonpt>95'),
+              ('bosonpt>40', 'bosonpt>100'),
+              ('bosonpt>50', 'bosonpt>105'),]
+RPSEL      = ['csi1>0.035 && csi2>0.035',]
+CATEGS     = [
+    'protonCat==1',
+    ','.join( ['protonCat==1 && xangle==%d'%angle for angle in [120,130,140,150] ] ),    
+    'protonCat==1 && nvtx<20, protonCat==1 && nvtx>=20',
+    'protonCat==1 && nch<15,  protonCat==1 && nch>=15',
+    ','.join( ['protonCat==%d'%(i+1) for i in range(4)] ),
+    ','.join( ['protonCat==%d && nvtx<20'%(i+1) for i in range(4)] )  +','+  ','.join( ['protonCat==%d && nvtx>=20'%(i+1) for i in range(4)] ),
+    ','.join( ['protonCat==%d && nch<15'%(i+1) for i in range(4)] )   +','+  ','.join( ['protonCat==%d && nch>=15'%(i+1) for i in range(4)] ),
+]
 
 OPTIMLIST=list(itertools.product(KINEMATICS, RPSEL,CATEGS))
 
@@ -43,6 +60,10 @@ def main(args):
                         dest='output', 
                         default='ppvx_analysis',
                         help='Output directory [default: %default]')
+    parser.add_argument('--xangles',
+                        dest='xangles', 
+                        default='120,130,140,150',
+                        help='Scan these cross angles (0=inclusive) [default: %default]')
     parser.add_argument('--just',
                         dest='just',
                         default=None,
@@ -80,6 +101,7 @@ def main(args):
             script.write('preselZ="%s && %s"\n'%(kin[0],rpsel))
             script.write('preselGamma="%s && %s"\n'%(kin[1],rpsel))        
             script.write('categs="%s"\n'%(cats))
+            script.write('xangles="%s"\n'%(opt.xangles))
             if opt.injectMass:
                 script.write('injectMass="--injectMass %s"\n'%opt.injectMass)
             else:
@@ -104,7 +126,7 @@ def main(args):
 
             #create datacard
             script.write('echo "Running datacard creation"\n')
-            script.write('python ${CMSSW_BASE}/src/TopLJets2015/TopAnalysis/test/analysis/pps/generateBinnedWorkspace.py -i ${input} -o ${output} --preselZ "${preselZ}" --preselGamma "${preselGamma}" --categs "${categs}" ${injectMass} ${extraOpt}\n')
+            script.write('python ${CMSSW_BASE}/src/TopLJets2015/TopAnalysis/test/analysis/pps/generateBinnedWorkspace.py -i ${input} -o ${output} --preselZ "${preselZ}" --preselGamma "${preselGamma}" --categs "${categs}" ${injectMass} ${extraOpt} --xangles "${xangles}" \n')
             script.write('\n')
 
             #combine cards
@@ -141,11 +163,11 @@ def main(args):
             script.write('pfix=${b}_m${m}\n')
             script.write('text2workspace.py ${b}_datacard.dat -m ${m} -o ${pfix}_workspace.root\n')
             script.write('baseCmd=\"combine ${pfix}_workspace.root -m ${m} --X-rtd MINIMIZER_analytic\"\n')
-            script.write('${baseCmd} -n PP${b}X.obs -M AsymptoticLimits\n')
-            script.write('${baseCmd} -n PP${b}X     -M AsymptoticLimits -t -1 --expectSignal=1 --setParameters mu_outfidsig=1\n')
-            script.write('${baseCmd} -n PP${b}X.obs -M Significance\n')
-            script.write('${baseCmd} -n PP${b}X     -M Significance     -t -1 --expectSignal=1 --setParameters mu_outfidsig=1\n')
-            script.write('#${baseCmd} -n PP${b}X     -M FitDiagnostics   -t -1 --expectSignal=1 --setParameters mu_outfidsig=1\n')
+            script.write('${baseCmd} -n PP${b}X.obs   -M AsymptoticLimits\n')
+            script.write('${baseCmd} -n PP${b}X       -M AsymptoticLimits -t -1 --expectSignal=1 --setParameters mu_outfidsig=1\n')
+            script.write('${baseCmd} -n PP${b}X.obs   -M Significance\n')
+            script.write('${baseCmd} -n PP${b}X       -M Significance     -t -1 --expectSignal=1 --setParameters mu_outfidsig=1\n')
+            script.write('${baseCmd} -n PP${b}X.m${m} -M FitDiagnostics\n')
             script.write('cd -\n')        
 
     #submit optimization points to crab

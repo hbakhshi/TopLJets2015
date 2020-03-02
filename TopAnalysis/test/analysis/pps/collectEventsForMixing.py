@@ -3,52 +3,49 @@ import os
 import sys
 from random import shuffle
 from collections import defaultdict
+from generateBinnedWorkspace import VALIDLHCXANGLES
 
-rpData = defaultdict(list)
+#create mixing manks per era and crossing angle
+for era in 'BCDEF':
 
-baseDir=sys.argv[1]
-fList=[f for f in os.listdir(baseDir+'/mixing/Chunks') if 'Data' in f]
+    era='2017'+era
+    for xangle in VALIDLHCXANGLES:
 
-toCheck=[]
-print 'Checking and merging',len(fList),'files'
-for f in fList:
+        rpData = defaultdict(list)
 
-    if 'ZeroBias' in f : continue
-    if 'DoubleEG' in f : continue
-    if 'Photon' in f : continue
+        baseDir=sys.argv[1]
+        fList=[f for f in os.listdir(baseDir+'/mixing/Chunks') if era in f]
 
-    fullf=os.path.join(baseDir+'/mixing/Chunks',f)
+        toCheck=[]
+        print 'Checking and merging',len(fList),'files for',(era,xangle)
+        for f in fList:
 
-    try:
-        with open(fullf,'r') as cache:
-            a=pickle.load(cache)
-        for key in a: 
-            newKey=(key[0],int(key[1]),int(key[2]))
-            rpData[newKey] += a[key]
-    except Exception as e:
-        toCheck.append(f)
+            if 'ZeroBias' in f : continue
+            if 'DoubleEG' in f : continue
+            if 'Photon' in f : continue
 
-print 'Total number of events for mixing'
-for key in rpData:
-    print key,len(rpData[key])
+            fullf=os.path.join(baseDir+'/mixing/Chunks',f)
 
-print 'Writing test mixing bank @ %s/mixing/test_mixbank.pck'%baseDir
-with open('test_mixbank.pck','w') as cache:
-    testRPData={}
-    for key in rpData:
-        testRPData[key]=rpData[key][0:min(len(rpData[key])-1,1000)]
-    pickle.dump(testRPData,cache)
-os.system('mv -v test_mixbank.pck %s/mixing/test_mixbank.pck'%baseDir)
+            try:
+                with open(fullf,'r') as cache:
+                    a=pickle.load(cache)
+                for key,evList in a.items():
+                    kera,kangle,kevtype=key 
+                    if kera   != era    : continue
+                    if kangle != xangle : continue
+                    rpData[key] += evList
+            except Exception as e:
+                toCheck.append(f)
 
+        print '\t total number of events for mixing'
+        for key in rpData:
+            print '\t',key,len(rpData[key])
 
-print 'Writing mixing bank @ %s/mixing/mixbank.pck'%baseDir
-with open('mixbank.pck','w') as cache:
-    pickle.dump(rpData,cache)
-os.system('mv -v mixbank.pck %s/mixing/mixbank.pck'%baseDir)
-
-
-
-
+        mixbank='%s/mixing/mixbank_%s_%d.pck'%(baseDir,era,xangle)
+        print '\t writing mixing bank @',mixbank
+        with open('mixbank.pck','w') as cache:
+            pickle.dump(rpData,cache)
+        os.system('mv mixbank.pck %s'%mixbank)
 
 if len(toCheck)>0:
     print '-'*50

@@ -91,7 +91,7 @@ TLorentzVector JECTools::getSmearedJet(TLorentzVector &jp4, float genJet_pt,floa
     }
     else {           
       float dPt = jp4.Pt()-genJet_pt;
-      jerSmear = std::max(float(1.0 + (jer_sf - 1.) * dPt / jp4.Pt()),float(0.));
+      jerSmear = 1.0 + (jer_sf - 1.) * dPt / jp4.Pt();
     }
   smearedJet *= jerSmear;  
   return smearedJet;

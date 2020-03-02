@@ -57,18 +57,110 @@ class PPSEfficiencyReader:
         return eff,effUnc
 
 
-    def getCombinedEfficiency(self,ppsPosEff,ppsPosEffUnc,ppsNegEff,ppsNegEffUnc,i_proton_cat):
-        ppsEff,ppsEffUnc=1.0,0.0
-        if i_proton_cat==1:
-            ppsEff=ppsPosEff*ppsNegEff
-            ppsEffUnc=ROOT.TMath.Sqrt( (ppsPosEff*ppsNegEffUnc)**2+(ppsPosEffUnc*ppsNegEff)**2)
-        elif i_proton_cat==2:
-            ppsEff=ppsPosEff
-            ppsEffUnc=ppsPosEffUnc
-        elif i_proton_cat==3:
-            ppsEff=ppsNegEff
-            ppsEffUnc=ppsNegEffUnc
-        return ppsEff,ppsEffUnc
+    def getProjectedFinalState(self,
+                               pos_protons,stripPosEff,stripPosEffUnc,
+                               neg_protons,stripNegEff,stripNegEffUnc,
+                               sighyp):
+
+        """
+        sighyp is a number between 0 and 16 where the bits represent
+        0b - number of pixels in negative side
+        1b - number of multi in negative side
+        0b - number of pixels in positive side
+        1b - number of multi in positive side
+        """
+           
+        ppsWgt,ppsWgtUnc=1.0,0.0
+        
+        #check how many multi are required for the signal hypothesis
+        nPixNegInSigHyp   = ((sighyp>>0) & 0x1)
+        nMultiNegInSigHyp = ((sighyp>>1) & 0x1)
+        nPixPosInSigHyp   = ((sighyp>>2) & 0x1)
+        nMultiPosInSigHyp = ((sighyp>>3) & 0x1)
+
+        #impossible cases! a multiRP needs a pixel
+        if nMultiNegInSigHyp==1 and nPixNegInSigHyp==0:
+            ppsWgt, ppsWgtUnc = 0., 0.
+            pos_protons=[[],[],[]]
+            neg_protons=[[],[],[]]
+            return pos_protons,neg_protons,ppsWgt,ppsWgtUnc
+        if nMultiPosInSigHyp==1 and nPixPosInSigHyp==0:
+            ppsWgt, ppsWgtUnc = 0., 0.
+            pos_protons=[[],[],[]]
+            neg_protons=[[],[],[]]
+            return pos_protons,neg_protons,ppsWgt,ppsWgtUnc
+
+        #check how many multi and pixels are available
+        nMultiPos = min(1,len(pos_protons[0]))
+        nPixPos   = min(1,len(pos_protons[1]))
+        nMultiNeg = min(1,len(neg_protons[0]))
+        nPixNeg   = min(1,len(neg_protons[1]))
+
+        #number of pixels must match!
+        if nPixPosInSigHyp!=nPixPos:
+            ppsWgt, ppsWgtUnc = 0., 0.
+            pos_protons[1]=[]
+            return pos_protons,neg_protons,ppsWgt,ppsWgtUnc
+        if nPixNegInSigHyp!=nPixNeg :
+            ppsWgt, ppsWgtUnc = 0., 0.
+            neg_protons[1]=[]
+            return pos_protons,neg_protons,ppsWgt,ppsWgtUnc
+
+        #do the migrations due to inefficiency
+
+        #cases where 1 proton is to be found on positive side
+        if nMultiPosInSigHyp==1:
+
+            #proton was already there, apply survival probability
+            if nMultiPos==1 and stripPosEff!=0.: 
+                ppsWgt        *= stripPosEff
+                ppsWgtUnc     *= stripPosEffUnc/stripPosEff
+
+            elif nMultiPos==0:
+                ppsWgt, ppsWgtUnc = 0., 0.
+                pos_protons[0]=[]
+                pos_protons[2]=[]
+
+        #cases where no proton is to be found on the positive side
+        else:
+
+            pos_protons[0] = []
+            pos_protons[2] = []
+
+            #in case one had been reconstructed downeight by inefficiency probability
+            if nMultiPos==1 and stripPosEff<1: 
+                ppsWgt        *= (1-stripPosEff)
+                ppsWgtUnc     *= stripPosEffUnc/(1-stripPosEff)
+
+        #cases where 1 proton is to be found on negative side
+        if nMultiNegInSigHyp==1:
+
+            #proton was already there, apply survival probability
+            if nMultiNeg==1 and stripNegEff>0: 
+                ppsWgt        *= stripNegEff
+                ppsWgtUnc     *= stripNegEffUnc/stripNegEff
+            elif nMultiNeg==0:
+                ppsWgt, ppsWgtUnc = 0., 0.
+                neg_protons[0]=[]
+                neg_protons[2]=[]
+
+        #cases where no proton is to be found on the negative side
+        else :
+
+            neg_protons[0]=[]
+            neg_protons[2]=[]
+
+            #in case one had been reconstructed downeight by inefficiency probability
+            if nMultiNeg==1 and stripNegEff!=1.: 
+                ppsWgt        *= (1-stripNegEff)
+                ppsWgtUnc     *= stripNegEffUnc/(1-stripNegEff)
+
+        #finalize weight uncertainty
+        ppsWgtUnc= ppsWgt*ROOT.TMath.Sqrt(ppsWgtUnc)
+
+        #return final result
+        return pos_protons,neg_protons,ppsWgt,ppsWgt
+
 
 
 def main():

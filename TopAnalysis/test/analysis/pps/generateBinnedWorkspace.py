@@ -28,13 +28,13 @@ def smoothMissingMass(h,smoothRanges=[#(-300,   300,  'pol2'),
     for xran in smoothRanges:
         
         xmin,xmax,fname=xran
-        print h.GetName(), xmin,xmax,'->',
         xmin=min(hxmax,max(hxmin,xmin))
         xmax=min(hxmax,max(hxmin,xmax))
-        print xmin,xmax
+
         if xmin==xmax :
             print 'Skipping', xran,'for',h.GetName()
             continue
+
         imin,imax=h.GetXaxis().FindBin(xmin),h.GetXaxis().FindBin(xmax)
         h.Fit(fname,'RQM+','',xmin,xmax)
         ffunc=h.GetFunction(fname)
@@ -71,21 +71,16 @@ def defineProcessTemplates(histos,norm=False):
         if not 'Up' in key and not 'Down' in key :
 
             templates[-1].SetName(key+'Up')
-            templates.append( histos[i].Clone(key+'Down') )
+            templates.append( histos[0].Clone(key+'Down') )
             
-            ratio=templates[-1].Clone('ratio')
-            ratio.Divide(histos[0])
-
+            #diff
+            diffH=templates[-1].Clone('ratio')
+            diffH.Add(templates[-2],-1)
             for xbin in range(templates[0].GetNbinsX()):
-                ratioVal=ratio.GetBinContent(xbin+1)
-                if ratioVal==0: continue
-                relUnc=abs(ratio.GetBinError(xbin+1)/ratioVal)
-                if  relUnc> 0.5:
-                    templates[-1].SetBinContent(xbin+1,histos[0].GetBinContent(xbin+1)) #keep nominal if relative uncertainty is too large
-                else:
-                    templates[-1].SetBinContent(xbin+1,histos[0].GetBinContent(xbin+1)/ratioVal)
-            
-            ratio.Delete()
+                diffVal=diffH.GetBinContent(xbin+1)
+                templates[-1].SetBinContent(xbin+1,max(1e-6,diffVal+histos[0].GetBinContent(xbin+1)))                
+            diffH.Delete()
+
             if norm : templates[-1].Scale(nomStats/histos[i].Integral())
     
     #don't leave bins with 0's
@@ -154,13 +149,16 @@ def fillBackgroundTemplates(opt):
             data_obs.SetDirectory(0)
         h.Reset('ICE')
 
-        for name,mixType,pfix in [('bkg_'+catName,                      1, ''),
-                                  ('bkg_%s_bkgShape'%catName,           1, 'syst'),
-                                  ('bkg_%s_bkgShapeSingleDiff'%catName, 2, ''),
+        for name,mixType,pfix in [('bkg_'+catName,                          1, ''),
+                                  ('bkg_%s_bkgShape'%catName,               1, 'syst'),
+                                  ('bkg_%s_bkgShapeSingleDiffUp'%catName,   2, ''),
+                                  ('bkg_%s_bkgShapeSingleDiffDown'%catName, 2, 'syst'),
                               ]:
 
             templCuts=categCut.replace('csi1',pfix+'csi1')
             templCuts=templCuts.replace('csi2',pfix+'csi2')
+            if pfix=='syst':
+                templCuts=templCuts.replace('protonCat','systprotonCat')
 
             histodef='%smmiss >> h(%d,%f,%f)'%(pfix,opt.nbins,opt.mMin,opt.mMax)           
             if opt.signed:
@@ -190,7 +188,7 @@ def fillBackgroundTemplates(opt):
     return totalBkg,templates,data_templates
 
 
-def fillSignalTemplates(mass,signalFile,xsec,opt,fiducialCuts='gencsi1>0.02 && gencsi1<0.16 && gencsi2>0.03 && gencsi2<0.18'):
+def fillSignalTemplates(mass,signalFile,xsec,opt,fiducialCuts='gencsi1>0.02 && gencsi1<0.16 && gencsi2>0.03 && gencsi2<0.18',postfix=''):
 
     """fills the signal histograms"""
 
@@ -207,13 +205,13 @@ def fillSignalTemplates(mass,signalFile,xsec,opt,fiducialCuts='gencsi1>0.02 && g
     dataAlt.AddFile(os.path.join(opt.input,signalFile).replace('preTS2','postTS2'))
 
     #common weight exppression
-    wgtExpr='wgt*{xsec}*{lumi}'.format(xsec=xsec,lumi=opt.lumi)
+    wgtExpr='ppsEff*wgt*{xsec}*{lumi}'.format(xsec=xsec,lumi=opt.lumi)
 
     #loop over categories build templates
     for icat in range(len(opt.categs)):
 
         #apply category cuts
-        catName='%s_%d'%(opt.chTag,icat)
+        catName='%s_%d%s'%(opt.chTag,icat,postfix)
         categCut=opt.presel
         if len(opt.categs[icat]): categCut += ' && ' + opt.categs[icat]
         print '\t\t',catName,categCut
@@ -223,12 +221,12 @@ def fillSignalTemplates(mass,signalFile,xsec,opt,fiducialCuts='gencsi1>0.02 && g
                         
             #signal modelling histograms
             histos=[]
-            for name,mixType,pfix,addWgt in [('sig_%s_m%s'%(catName,mass),                    1, '',     None),
-                                             ('sig_%s_m%s_sigShape'%(catName,mass),           1, 'syst', None),
-                                             ('sig_%s_m%s_sigShapeSingleDiff'%(catName,mass), 2, '',     None),
-                                             ('sig_%s_m%s_sigCalibUp'%(catName,mass),         1, '',     None),
-                                             ('sig_%s_m%s_sigCalibDown'%(catName,mass),       1, '',     None),
-                                             ('sig_%s_m%s_sigPzModel'%(catName,mass),         1, '',     'gen_pzwgtUp')]:
+            for name,mixType,pfix,addWgt in [('sig_%s_m%s'%(catName,mass),               1, '',     None),
+                                             ('sig_%s_m%s_sigShape'%(catName,mass),      1, 'syst', None),                                             
+                                             ('sig_%s_m%s_sigCalibUp'%(catName,mass),    1, '',     None),
+                                             ('sig_%s_m%s_sigCalibDown'%(catName,mass),  1, '',     None),
+                                             ('sig_%s_m%s_sigPPSEff'%(catName,mass),     1, '',     '(ppsEff>0 ? 1.0+0.04/ppsEff : 1.0)'),
+                                             ('sig_%s_m%s_sigPzModel'%(catName,mass),    1, '',     'gen_pzwgtUp')]:
 
                 name=sigType+name
                 templCuts=categCut.replace('csi1',pfix+'csi1')
@@ -237,6 +235,8 @@ def fillSignalTemplates(mass,signalFile,xsec,opt,fiducialCuts='gencsi1>0.02 && g
                     templCuts+=' && !(%s)'%fiducialCuts
                 else:
                     templCuts+=' && %s'%fiducialCuts
+                if pfix=='syst':
+                    templCuts=templCuts.replace('protonCat','systprotonCat')
 
                 histodef='%smmiss >> h(%d,%f,%f)'%(pfix,opt.nbins,opt.mMin,opt.mMax)           
                 if opt.signed:
@@ -327,6 +327,7 @@ def writeDataCards(opt,shapesURL):
             dc.write('eff_%s                 %8s %15s %15s %15s\n'%(finalState,  'lnN',   '1.03',  '-',  '-'))
             dc.write('sigShape               %8s %15s %15s %15s\n'%('shape',              '1',     '1',  '-'))           
             dc.write('sigCalib               %8s %15s %15s %15s\n'%('shape',              '1',     '1',  '-'))
+            dc.write('sigPPSEff              %8s %15s %15s %15s\n'%('shape',              '1',     '1',  '-'))
             dc.write('sigPzModel             %8s %15s %15s %15s\n'%('shape',              '1',     '1',  '-'))
             dc.write('%s_bkgShape            %8s %15s %15s %15s\n'%(cat,'shape',          '-',     '-',  '1')) #uncorrelate background shapes
             dc.write('%s_bkgShapeSingleDiff  %8s %15s %15s %15s\n'%(cat,'shape',          '-',     '-',  '1'))
@@ -348,15 +349,23 @@ def datacardTask(args):
 
     #finalize configuration of this specific task
     ch,xangle,opt=args
+
+
     setattr(opt,'chTag','%s_a%d'%(CH_DICT[ch],xangle))
     setattr(opt,'chTitle',CH_TITLE_DICT[ch])
-    setattr(opt,'presel','cat==%s && xangle==%d && %s'%(ch,xangle,opt.preselZ))
-    
+    if xangle in VALIDLHCXANGLES:
+        setattr(opt,'presel','cat==%s && xangle==%d && %s'%(ch,xangle,opt.preselZ))
+    else:
+        setattr(opt,'presel','cat==%s && %s'%(ch,opt.preselZ))
+
     boson='Z'
     if ch=='22':
         boson='gamma'
-        setattr(opt,'presel','cat==%s && xangle==%d && %s'%(ch,xangle,opt.preselGamma))        
-        
+        if xangle in VALIDLHCXANGLES:
+            setattr(opt,'presel','cat==%s && xangle==%d && %s'%(ch,xangle,opt.preselGamma))        
+        else:
+            setattr(opt,'presel','cat==%s && %s'%(ch,opt.preselGamma))
+
     #start the output
     outName='shapes_%s_a%d.root'%(ch,xangle)
     shapesURL=os.path.join(opt.output,outName)
@@ -372,23 +381,60 @@ def datacardTask(args):
     #parametrize the signal
     print '\t filling signal templates' 
     for m in opt.massList:
-        signalFile=opt.sig.format(boson=boson,xangle=xangle,mass=m)
-        sigExp,sigTemplates,sigNomTemplates=fillSignalTemplates(mass=m,
-                                                                signalFile=signalFile,
-                                                                xsec=SIGNALXSECS[xangle] if boson=='Z' else PHOTONSIGNALXSECS[xangle],
-                                                                opt=opt)
-        for key in sigTemplates:
+        try:
+            if xangle in VALIDLHCXANGLES:
+                signalFile=opt.sig.format(boson=boson,xangle=xangle,mass=m)
+                sigExp,sigTemplates,sigNomTemplates=fillSignalTemplates(mass=m,
+                                                                        signalFile=signalFile,
+                                                                        xsec=SIGNALXSECS[xangle] if boson=='Z' else PHOTONSIGNALXSECS[xangle],
+                                                                        opt=opt)
+            else:
+                print '\t summing up all crossing angles'
+                sigExp,sigTemplates,sigNomTemplates=None,None,None
+                for ixangle in VALIDLHCXANGLES:
+                    print '\t @%durad'%ixangle
+                    signalFile=opt.sig.format(boson=boson,xangle=ixangle,mass=m)
+                    if sigExp is None:
+                        sigExp,sigTemplates,sigNomTemplates=fillSignalTemplates(mass=m,
+                                                                                signalFile=signalFile,
+                                                                                xsec=SIGNALXSECS[ixangle] if boson=='Z' else PHOTONSIGNALXSECS[ixangle],
+                                                                                opt=opt)
+                    else:
+                        i_sigExp,i_sigTemplates,i_sigNomTemplates=fillSignalTemplates(mass=m,
+                                                                                      signalFile=signalFile,
+                                                                                      xsec=SIGNALXSECS[ixangle] if boson=='Z' else PHOTONSIGNALXSECS[ixangle],
+                                                                                      opt=opt,
+                                                                                      postfix='_add')
+                        for k in sigTemplates:
+                            for kk in sigExp[k]:
+                                sigExp[k][kk] += i_sigExp[k][kk]
+                            for i in range(len(sigTemplates[k])):
+                                sigTemplates[k][i].Add(i_sigTemplates[k][i])
+                                i_sigTemplates[k][i].Delete()
+                            for i in range(len(sigNomTemplates[k])):
+                                sigNomTemplates[k][i].Add(i_sigNomTemplates[k][i])
+                                i_sigNomTemplates[k][i].Delete()
 
-            for h in sigTemplates[key]:
-                h.SetDirectory(fOut)
-                h.Write()
+                print '\t Final total signal:',sigExp
 
-            #if blinded add signal pseudo-data 
-            if not opt.unblind and opt.injectMass==m:
-                for i in range(len(sigNomTemplates[key])):
-                    data_templates[i].Add(sigNomTemplates[key][i],opt.injectMu)
-                    sigNomTemplates[key][i].Delete() #no longer needed
-        
+            for key in sigTemplates:
+
+                for h in sigTemplates[key]:
+                    h.SetDirectory(fOut)
+                    h.Write()
+
+                #if blinded add signal to pseudo-data 
+                if not opt.unblind and opt.injectMass==m:
+                    for i in range(len(sigNomTemplates[key])):
+                        data_templates[i].Add(sigNomTemplates[key][i],opt.injectMu)
+                        sigNomTemplates[key][i].Delete() #no longer needed
+
+        except Exception as e:
+            print '-'*50
+            print 'Failed to generate templates at mass=',m,'for boson=',boson
+            print e
+            print '-'*50
+
     #now write the data
     for h in data_templates:
         h.SetDirectory(fOut)
@@ -449,7 +495,7 @@ def main(args):
                         help='integrated luminosity [default: %default]')
     parser.add_argument('--mBin',
                         dest='mBin',
-                        default=50.,
+                        default=40.,
                         type=float,
                         help='mass bin width [default: %default]')
     parser.add_argument('--mMin',
@@ -466,6 +512,10 @@ def main(args):
                         dest='output', 
                         default='analysis/stat',
                         help='Output directory [default: %default]')
+    parser.add_argument('--xangles',
+                        dest='xangles', 
+                        default='120,130,140,150',
+                        help='Scan these cross angles (0=inclusive) [default: %default]')
     parser.add_argument('--unblind',
                         dest='unblind', 
                         default=False,
@@ -503,7 +553,7 @@ def main(args):
 
     task_list=[]
     for ch in CH_DICT.keys():
-        for angle in VALIDLHCXANGLES:
+        for angle in [int(x) for x in opt.xangles.split(',')]: 
             task_list.append( (ch,angle,copy.deepcopy(opt)) )
 
     import multiprocessing as MP

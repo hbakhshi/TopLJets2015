@@ -10,6 +10,9 @@ cd ${HOME}
 if [ ! -z ${6} ]; then
     extraOpts="--mix ${6}";
 fi
+if [ ! -z ${7} ]; then
+    extraOpts="${extraOpts} --allowPix ${7}"
+fi
 
 extraOpts="${extraOpts} --effDir ${PPS}"
 
